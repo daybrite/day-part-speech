@@ -10,18 +10,20 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # Speech (headless capability crate, and daybridge's reference)
 
-> **Status: implemented** as `day-part-speech` (in `parts/`, the headless counterpart of `pieces/`).
-> It has one Rust API, six foreign implementations, and one file. Verified by driving the Showcase's Platform
-> services page: macOS, iOS simulator, Android emulator, and headless WebKit all reach a real
-> engine. The Windows arm compiles on CI's `windows-xaml` leg; Linux needs speech-dispatcher
-> installed to say anything, and says so through `available()` when it is missing.
+> **Status: shipped**, as `day-part-speech` in this repository. It has one Rust API, six foreign
+> implementations, and one file. Verified by driving the [demo app](../demo/) and the Showcase's
+> Platform services page: macOS, iOS simulator, Android emulator, and headless WebKit all reach a
+> real engine. The Windows arm compiles on CI's Windows host leg; Linux needs speech-dispatcher
+> installed to say anything, and says so through `available()` when it is missing. It is the
+> first part to live outside the `daybrite/day` tree; the [README](../README.md) covers how it
+> depends on day and how the `demo/` app tests it on device.
 
 > [!IMPORTANT]
-> **The code below is copied from `parts/day-part-speech/src/lib.rs`, which is the authority.**
+> **The code below is copied from [`src/lib.rs`](../src/lib.rs), which is the authority.**
 > This page exists because that crate is the worked example every bridge author reads first. When
 > the crate changes (a new arm, a changed declaration, a different engine call), update the
-> snippets here in the same change, the way [bridge.md](bridge.md) and
-> [DESIGN.md](../DESIGN.md) §15.6 are kept in step with the generator.
+> snippets here in the same change, the way the [bridge reference](https://daybrite.dev/docs/internal/bridge)
+> is kept in step with the generator.
 
 ## Authoring
 
@@ -41,7 +43,7 @@ There are three functions, and calling code needs no platform conditionals:
 | `available() -> Support` | `Native`, `Emulated`, or `Unsupported`, for this host rather than just this target |
 
 **`Ok` means accepted, not finished.** A v1 bridge call is synchronous and one-shot, so nothing
-reports completion; the boundary has no callback tier yet (bridge.md, "After v1"). Anything that
+reports completion; the boundary has no callback tier yet ([bridge reference](https://daybrite.dev/docs/internal/bridge), "After v1"). Anything that
 wants to know when the voice stops has to wait for that. The Showcase demo is built around this:
 it has no progress readout, because a "Speaking…" label would never clear.
 
@@ -121,7 +123,7 @@ public static void speak_native(String text) {
 ```
 
 That `throw` is the error channel: the JVM has no status codes, so an exception is how an arm
-fails, and the generated wrapper turns it into `Error::Foreign` (bridge.md, "Errors").
+fails, and the generated wrapper turns it into `Error::Foreign` ([bridge reference](https://daybrite.dev/docs/internal/bridge), "Errors").
 
 **An arm that needs a different string type.** SAPI speaks `WCHAR`, so the Windows arm opts into
 UTF-16 and the *declaration stays the same*; the conversion is generated, and no other arm is
@@ -156,8 +158,9 @@ Linux is the platform where the engine is a separate package, and the crate is b
 without it degrades in the mildest way available:
 
 - **The app still builds.** The arm declares no `link`, so no development package is needed on any
-  build machine ([docs/bridge.md](bridge.md) "Linking"). This is what a `link = ["speechd"]` cost before: CI
-  runners failed at the link step with `unable to find library -lspeechd`.
+  build machine ([bridge reference](https://daybrite.dev/docs/internal/bridge) "Linking"). This is
+  what a `link = ["speechd"]` cost before: CI runners failed at the link step with `unable to find
+  library -lspeechd`.
 - **The app still launches.** A linked library is a `DT_NEEDED` entry and the loader enforces it
   before `main`; a `dlopen`ed one is looked up when speech is first used, and not before.
 - **`available()` reports the engine.** It asks the arm at run time through `engine_ready_native`,
@@ -170,9 +173,10 @@ Windows, so there is nothing to be missing.
 
 ## What it shows about the extension system
 
-`day-part-battery` ([battery.md](battery.md)) showed that a headless crate can contribute a platform
-implementation. This crate is the case that motivated [daybridge](bridge.md) itself: **six
-languages, one file, one declaration**. The generator writes the glue, so the whole crate is
+`day-part-battery` ([battery](https://daybrite.dev/docs/internal/battery)) showed that a headless
+crate can contribute a platform implementation. This crate is the case that motivated
+[daybridge](https://daybrite.dev/docs/internal/bridge) itself: **six languages, one file, one
+declaration**. The generator writes the glue, so the whole crate is
 `src/lib.rs` plus a manifest, and there is no wire format to keep in agreement.
 
 It also shows the design's limits. Speech is fire-and-forget, which is the only
@@ -181,13 +185,14 @@ permissions, local-notify) are the ones whose platform half pushes events back.
 
 ## Trying it
 
-The Showcase's **Speech & haptics** page has the demo at the top: a text field (empty means the
-localized sample the placeholder shows), Speak, and Stop.
+The [demo app](../demo/) is one page: a text field (empty means the sample the placeholder
+shows), Speak, and Stop, with the support the part reports for this host above them. The
+Showcase's **Speech & haptics** page carries the same section.
 
 ```
-day launch -p macos-appkit --script dayscript/speech.yaml
+cd demo && day launch -p macos-appkit --script dayscript/speech.yaml
 ```
 
-The walkthrough checks what a script can check: that the section renders, that it reports the
+The walkthrough checks what a script can check: that the page renders, that it reports the
 support the part claims for the target, and that both bridged calls run without wedging the UI.
 Hearing the voice is the acceptance test, and it needs a person.

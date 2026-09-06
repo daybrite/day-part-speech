@@ -1,25 +1,38 @@
 [package]
 name = "day-part-speech"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.89"
+description = "Text to speech for Day apps through each platform's own engine"
+repository = "https://github.com/daybrite/day-part-speech"
+license = "MPL-2.0"
+# The day framework crates are not on crates.io yet; neither is this one. Apps depend on it
+# from git, exactly as they depend on day.
 publish = false
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-description.workspace = true
-repository.workspace = true
-license.workspace = true
 
-# A HEADLESS day-ecosystem crate (no UI Piece): text to speech through each platform's own engine.
-# It is daybridge's reference sample (docs/bridge.md) — every platform's TTS lives in a different
-# language, so the crate carries one Swift, Java, ArkTS, JavaScript, C++ (Windows SAPI), and C arm
-# beside the Rust fallback, all in `src/lib.rs`.
+# An EXTERNAL Day Part (https://daybrite.dev/docs/parts): a HEADLESS capability crate with no UI
+# Piece, and daybridge's reference sample (https://daybrite.dev/docs/internal/bridge). Every
+# platform has text to speech and exposes it in a different language, so `src/lib.rs` carries one
+# Swift, Java, ArkTS, JavaScript, C++ (Windows SAPI), and C arm beside the Rust fallback, all
+# under one declaration. `build.rs` generates the glue; nothing here is written twice.
+#
+# Every day dependency names the BARE canonical URL — no branch, tag, or rev. Cargo unifies a git
+# dependency only when URL and ref match, so an app on `git = "…/day.git"` and a part pinned to
+# a tag would carry two copies of every day crate; leaving the ref off lets the app's Cargo.lock
+# choose one revision for the whole graph. `demo/Cargo.lock` records the revision this release
+# was tested against, and `compat` below says which day minor that is.
+
+[package.metadata.day]
+# The day minor this release is built and tested against. `day build` notes a mismatch.
+compat = "0.4"
 
 [dependencies]
-day-bridge = { workspace = true }
+day-bridge = { git = "https://github.com/daybrite/day.git" }
 
-# A JVM arm is called through JNI, so the generated code needs day-android's cached JVM and
-# Context — the same dependency day-part-battery's Android arm has always had (docs/bridge.md).
+# The Java arm is called through JNI, so the generated code needs day-android's cached JVM and
+# Context — the same dependency day-part-battery's Android arm has.
 [target.'cfg(target_os = "android")'.dependencies]
-day-android = { workspace = true }
+day-android = { git = "https://github.com/daybrite/day.git" }
 
 [build-dependencies]
-day-build = { workspace = true }
+day-build = { git = "https://github.com/daybrite/day.git" }

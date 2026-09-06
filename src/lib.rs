@@ -17,7 +17,7 @@
 //! the crate compiling anywhere else, including under day-mock in `cargo test`.
 //!
 //! Speech is fire and forget: `speak` returns once the platform has accepted the utterance, not
-//! when it finishes speaking (docs/bridge.md "Synchronous means dispatched").
+//! when it finishes speaking (the bridge reference, "Synchronous means dispatched").
 
 pub use day_bridge::{Error, Support};
 
@@ -103,7 +103,7 @@ day_bridge::bridge! {
     // needs the -dev package on every build machine, and it writes a DT_NEEDED entry that stops
     // the whole app from starting on any desktop without libspeechd — for a feature the user may
     // never press. A speech engine is exactly the kind of optional platform service `dlopen`
-    // exists for (docs/bridge.md "Linking"). The arm keeps the connection handle in the language
+    // exists for (the bridge reference, "Linking"). The arm keeps the connection handle in the language
     // that owns it, which is why it is C rather than Rust.
     #[day_bridge::impl(c, platforms = [linux])]
     c!(
@@ -239,7 +239,7 @@ day_bridge::bridge! {
     //
     // Written in Java rather than Kotlin so it compiles in any Android project: AGP compiles
     // `.java` from a source directory with no extra plugin, while a `.kt` needs the Kotlin plugin
-    // (docs/bridge.md — `day lint` says so before a build gets that far).
+    // (`day lint` says so before a build gets that far).
     #[day_bridge::impl(java, platforms = [android])]
     java!(
         prelude = r#"

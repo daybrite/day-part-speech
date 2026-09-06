@@ -1,0 +1,17 @@
+/target
+/demo/target
+/demo/build
+
+# Machine-local: `day patch --local <checkout>` writes these to build against a day checkout
+# instead of the git dependency. CI has no such file and resolves git.
+/.cargo/config.toml
+/demo/.cargo/config.toml
+
+# Xcode and Gradle local state inside the demo's platform scaffolds (see demo/.gitignore).
+/demo/**/xcuserdata/
+/demo/**/DerivedData/
+/demo/**/*.xcodeproj/project.xcworkspace/
+/demo/platform/android/.gradle/
+/demo/platform/android/**/build/
+/demo/platform/android/local.properties
+/demo/platform/android/.idea/

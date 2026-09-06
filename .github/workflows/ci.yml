@@ -1,0 +1,100 @@
+name: ci
+
+# Three questions, answered on every push and once a day:
+#   host        does the crate build, lint, and pass its tests on each desktop, with that host's
+#               own arm compiled in (the C arm on Linux, the C++ SAPI arm on Windows)?
+#   cross-check do the Rust halves compile for the targets whose arms cargo cannot run here?
+#   demo        does the walkthrough pass on macOS, the iOS Simulator, and the Android emulator,
+#               at the day revision demo/Cargo.lock pins?
+#   canary      …and at day's newest main? Allowed to fail; must be seen.
+on:
+  push:
+    branches: ["**"]
+    tags: ["v[0-9]+.[0-9]+.[0-9]+*"]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # Daily: day's main moves on weeks nobody pushes here.
+    - cron: "0 5 * * *"
+
+permissions:
+  contents: write # release-asset upload on tag builds
+
+jobs:
+  # One row per desktop, because each compiles a different arm. `build.rs` writes every C and C++
+  # translation unit and compiles the one the target selects: Linux builds the dlopen'ed
+  # speech-dispatcher arm and runs the tests against it (no engine installed, so `available()`
+  # must say Unsupported); Windows builds the SAPI arm against the SDK's sapi.h; macOS takes the
+  # Rust fallback, since the Swift arm is compiled by xcodebuild inside an app build, which is
+  # the demo job's business.
+  host:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-15, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo fmt --all -- --check
+        if: matrix.os == 'ubuntu-latest'
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+
+  # The Rust halves compile for the targets whose arms only a device build can link: the Swift
+  # arm's iOS side, the JNI side of the Java arm (which pulls day-android), and the wasm side of
+  # the JavaScript arm. A drift in a generated signature fails here in a minute rather than in
+  # the emulator.
+  cross-check:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-15, target: aarch64-apple-ios-sim }
+          - { os: ubuntu-latest, target: aarch64-linux-android }
+          - { os: ubuntu-latest, target: wasm32-unknown-unknown }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - run: cargo clippy --locked --target ${{ matrix.target }} -- -D warnings
+
+  # The proof: the demo app, driven end to end by the shared Day workflow. It builds with the day
+  # revision demo/Cargo.lock pins, runs dayscript/speech.yaml, and fails on a failed assertion or
+  # a blank capture. Screenshots are uploaded per target, and a tag build attaches them to the
+  # release. Three targets, three arms: Swift on macOS and iOS, Java on Android.
+  demo:
+    uses: daybrite/actions/.github/workflows/build-day-app.yml@main
+    secrets: inherit
+    with:
+      project-path: demo
+      targets: macos-appkit, ios-uikit, android-mdc
+      # The CLI that builds; the framework revision itself comes from demo/Cargo.lock.
+      day-version: main
+      scripts: dayscript/speech.yaml
+      preflight-checks: fmt, clippy, test
+      ios-devices: |
+        device=iPhone, orientation=portrait
+      android-devices: |
+        device=pixel_5, os=36, orientation=portrait
+
+  # Tomorrow's day: the same run after `cargo update` moves the demo's lock to day's newest main.
+  # Not required to pass — the crate declares which day it was tested against — but a red canary
+  # is the first word that a retag is due, so it runs on every push as well as the daily schedule.
+  canary:
+    if: github.event_name != 'pull_request'
+    uses: daybrite/actions/.github/workflows/build-day-app.yml@main
+    secrets: inherit
+    with:
+      project-path: demo
+      targets: macos-appkit, ios-uikit, android-mdc
+      day-version: main
+      setup-command: cd demo && cargo update
+      scripts: dayscript/speech.yaml
+      artifact-prefix: canary-
+      ios-devices: |
+        device=iPhone, orientation=portrait
+      android-devices: |
+        device=pixel_5, os=36, orientation=portrait
