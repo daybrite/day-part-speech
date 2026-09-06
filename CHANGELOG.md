@@ -12,5 +12,5 @@ The first release from its own repository. The crate moved out of `daybrite/day`
 
 - Tested against day 0.4 at the revision in `demo/Cargo.lock`.
 - New: the `demo/` app and its `dayscript/speech.yaml`, run by CI on macOS, the iOS Simulator,
-  and the Android emulator.
+  the Android emulator, headless WebKit, and the HarmonyOS emulator.
 - Unchanged: `speak`, `stop`, `available`, and the seven arms.

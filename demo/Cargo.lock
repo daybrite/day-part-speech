@@ -170,6 +170,7 @@ source = "git+https://github.com/daybrite/day.git#191608c11b1796f914dbcf3a73551b
 dependencies = [
  "day-android",
  "day-appkit",
+ "day-arkui",
  "day-core",
  "day-dom",
  "day-fluent",
@@ -219,6 +220,27 @@ dependencies = [
  "objc2-core-graphics",
  "objc2-foundation",
  "objc2-quartz-core",
+]
+
+[[package]]
+name = "day-arkui"
+version = "0.4.1"
+source = "git+https://github.com/daybrite/day.git#191608c11b1796f914dbcf3a73551b32127e1d54"
+dependencies = [
+ "day-arkui-sys",
+ "day-core",
+ "day-pieces",
+ "day-spec",
+ "linkme",
+ "log",
+]
+
+[[package]]
+name = "day-arkui-sys"
+version = "0.4.1"
+source = "git+https://github.com/daybrite/day.git#191608c11b1796f914dbcf3a73551b32127e1d54"
+dependencies = [
+ "cc",
 ]
 
 [[package]]

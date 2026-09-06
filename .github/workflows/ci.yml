@@ -4,8 +4,9 @@ name: ci
 #   host        does the crate build, lint, and pass its tests on each desktop, with that host's
 #               own arm compiled in (the C arm on Linux, the C++ SAPI arm on Windows)?
 #   cross-check do the Rust halves compile for the targets whose arms cargo cannot run here?
-#   demo        does the walkthrough pass on macOS, the iOS Simulator, and the Android emulator,
-#               at the day revision demo/Cargo.lock pins?
+#   demo        does the walkthrough pass on macOS, the iOS Simulator, the Android emulator,
+#               headless WebKit, and the HarmonyOS emulator, at the day revision demo/Cargo.lock
+#               pins?
 #   canary      …and at day's newest main? Allowed to fail; must be seen.
 on:
   push:
@@ -64,13 +65,15 @@ jobs:
   # The proof: the demo app, driven end to end by the shared Day workflow. It builds with the day
   # revision demo/Cargo.lock pins, runs dayscript/speech.yaml, and fails on a failed assertion or
   # a blank capture. Screenshots are uploaded per target, and a tag build attaches them to the
-  # release. Three targets, three arms: Swift on macOS and iOS, Java on Android.
+  # release. Five targets, five arms: Swift on macOS and iOS, Java on Android, JavaScript in
+  # WebKit, ArkTS on HarmonyOS. With the two desktop host rows above, every arm meets a compiler
+  # (or, for JavaScript, a browser) somewhere in this workflow.
   demo:
     uses: daybrite/actions/.github/workflows/build-day-app.yml@main
     secrets: inherit
     with:
       project-path: demo
-      targets: macos-appkit, ios-uikit, android-mdc
+      targets: macos-appkit, ios-uikit, android-mdc, web-dom, harmony-arkui
       # The CLI that builds; the framework revision itself comes from demo/Cargo.lock.
       day-version: main
       scripts: dayscript/speech.yaml
@@ -89,7 +92,7 @@ jobs:
     secrets: inherit
     with:
       project-path: demo
-      targets: macos-appkit, ios-uikit, android-mdc
+      targets: macos-appkit, ios-uikit, android-mdc, web-dom, harmony-arkui
       day-version: main
       setup-command: cd demo && cargo update
       scripts: dayscript/speech.yaml

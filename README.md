@@ -88,8 +88,8 @@ cd demo && day launch -p android-mdc --script dayscript/speech.yaml
 ```
 
 The [demo app](demo/) depends on this crate by path, and its walkthrough drives both bridged calls
-on device; CI runs it on macOS, the iOS Simulator, and the Android emulator on every push, and
-daily against day's newest `main`. Hearing the voice is the acceptance test, and it needs a
+on device; CI runs it on macOS, the iOS Simulator, the Android emulator, headless WebKit, and
+the HarmonyOS emulator on every push, and daily against day's newest `main`. Hearing the voice is the acceptance test, and it needs a
 person. To work against a local day checkout, `day patch --local ../day` in either directory
 writes a gitignored patch table.
 
