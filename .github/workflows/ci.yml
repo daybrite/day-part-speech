@@ -81,7 +81,7 @@ jobs:
       ios-devices: |
         device=iPhone, orientation=portrait
       android-devices: |
-        device=pixel_5, os=36, orientation=portrait
+        device=pixel_10,    os=36, orientation=portrait
 
   # Tomorrow's day: the same run after `cargo update` moves the demo's lock to day's newest main.
   # Not required to pass — the crate declares which day it was tested against — but a red canary
@@ -100,4 +100,4 @@ jobs:
       ios-devices: |
         device=iPhone, orientation=portrait
       android-devices: |
-        device=pixel_5, os=36, orientation=portrait
+        device=pixel_10,    os=36, orientation=portrait
