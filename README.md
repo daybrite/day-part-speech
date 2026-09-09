@@ -64,7 +64,7 @@ bridge of your own.
 
 | This crate | Tested against day | Targets |
 |---|---|---|
-| 0.1 | 0.4 (`main` at the revision in `demo/Cargo.lock`) | every target with an arm above |
+| 0.1 | 0.4 (`main`, at its newest revision on every CI run) | every target with an arm above |
 
 Every day dependency names the bare canonical URL with no branch or tag, and your app's
 `Cargo.lock` picks one day revision for the whole graph. Cargo unifies a git dependency only when

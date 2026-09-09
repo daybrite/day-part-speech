@@ -26,13 +26,13 @@ The voice itself is the one thing a script cannot hear.
 
 ## Build against a local day
 
-`Cargo.lock` pins the day revision this demo was tested against. To build against a checkout of
-day (or of the part) instead:
+No `Cargo.lock` is committed: the first build resolves day at the tip of `main`, and `cargo
+update` moves it there again. To build against a checkout of day (or of the part) instead:
 
 ```sh
 day patch --local ../../day             # writes .cargo/config.toml, gitignored
 day patch --check                       # every day crate now resolves from the checkout
 ```
 
-Delete `.cargo/config.toml` to go back to the pinned revision, and do not commit `Cargo.lock`
-while patched (it records the local paths). `cargo update` moves the pin to the newest day.
+Delete `.cargo/config.toml` to go back to the git dependency. The lock is gitignored, so a
+patched build cannot leave the checkout's paths behind for anyone else.
