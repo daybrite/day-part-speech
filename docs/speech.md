@@ -34,18 +34,30 @@ if day_part_speech::available() != day_bridge::Support::Unsupported {
 day_part_speech::stop();
 ```
 
-There are three functions, and calling code needs no platform conditionals:
+There are five functions, and calling code needs no platform conditionals:
 
 | Function | Meaning |
 |---|---|
 | `speak(&str) -> Result<(), day_bridge::Error>` | say it, interrupting anything already speaking |
+| `speak_until_done(&str, on_end)` | say it, and call `on_end` once with a `SpeechEnd` when the utterance ends |
+| `speak_future(&str)` | say it, and `.await` the `SpeechEnd` under `day::task` |
 | `stop()` | stop immediately; a silent no-op where speech is unsupported |
 | `available() -> Support` | `Native`, `Emulated`, or `Unsupported`, for this host rather than just this target |
 
-**`Ok` means accepted, not finished.** A v1 bridge call is synchronous and one-shot, so nothing
-reports completion; the boundary has no callback tier yet ([bridge reference](https://daybrite.dev/docs/internal/bridge), "After v1"). Anything that
-wants to know when the voice stops has to wait for that. The Showcase demo is built around this:
-it has no progress readout, because a "Speaking…" label would never clear.
+**`Ok` means accepted, not finished.** `speak` returns once the platform has queued the
+utterance. The end of it comes back through the bridge's callback tier
+([bridge reference](https://daybrite.dev/docs/internal/bridge), "Callbacks"): the declaration
+carries a `Done<i32>`, each engine completes it from its own end-of-utterance event, and the
+crate reports a `SpeechEnd` — `Finished`, `Stopped` (by `stop`, or the next `speak`), or
+`Unobserved` on speech-dispatcher, whose notifications the Linux arm does not subscribe to. The
+Showcase demo shows "Speaking…" from the tap until the future resolves:
+
+```rust
+day::task(async move {
+    let ended = day_part_speech::speak_future(&text).await;   // resumes on the UI thread
+    state.set(match ended { Ok(SpeechEnd::Stopped) => "Stopped", _ => "Finished" }.into());
+});
+```
 
 ## The shape of the crate
 
@@ -54,7 +66,12 @@ under it:
 
 ```rust
 pub fn speak(text: &str) -> Result<(), Error> {
-    speak_native(text)
+    speak_native_async(text, |_| {})
+}
+
+pub fn speak_future(text: &str) -> impl Future<Output = Result<SpeechEnd, Error>> {
+    let fut = speak_native_future(text);
+    async move { fut.await.and_then(SpeechEnd::from_code) }
 }
 
 pub fn stop() {
@@ -69,15 +86,18 @@ day_bridge::bridge! {
     // The contract. Every arm below implements exactly this; day-build checks that they agree.
     #[day_bridge::declare]
     extern "day" {
-        fn speak_native(text: &str) -> Result<(), day_bridge::Error>;
+        fn speak_native(text: &str, done: day_bridge::Done<i32>) -> Result<(), day_bridge::Error>;
         fn stop_native();
     }
     // … the arms …
 }
 ```
 
-`speak_native`, `stop_native`, and `speak_native_support` are all generated into `OUT_DIR` and
-included by the `bridge!` macro; nothing in the crate declares them by hand.
+`speak_native`, `speak_native_async`, `speak_native_future`, `stop_native`, and
+`speak_native_support` are all generated into `OUT_DIR` and included by the `bridge!` macro;
+nothing in the crate declares them by hand. The `Done<i32>` is the token each arm receives
+(`uint64_t`, `UInt64`, `long`, a `BigInt`) and completes through the generated
+`speak_native_complete(done, code)` helper when its engine reports the end of the utterance.
 
 ## Per-platform native realization
 

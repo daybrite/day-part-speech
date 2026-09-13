@@ -20,17 +20,21 @@ code together. `Cargo.toml` declares Rust dependencies; `Day.toml` configures th
 and its target platforms.
 
 This is a headless part: call it from a button action or another app event; there is
-no speech widget to add to the layout. It provides three operations:
+no speech widget to add to the layout. It provides five operations:
 
 | API | Meaning |
 |---|---|
 | `speak(&str) -> Result<(), Error>` | Request speech, replacing the current utterance. |
-| `stop()` | Ask the engine to stop. |
+| `speak_until_done(&str, on_end)` | The same request, with a callback that fires once when the utterance ends. |
+| `speak_future(&str) -> impl Future<Output = Result<SpeechEnd, Error>>` | The same request, to `.await` under `day::task`. |
+| `stop()` | Ask the engine to stop; a pending `speak_future` resolves with `SpeechEnd::Stopped`. |
 | `available() -> Support` | Report `Native`, `Emulated`, or `Unsupported` using the compiled platform implementation and its runtime probe. |
 
-Speech is asynchronous. `Ok(())` means the request was dispatched/accepted, not that
-sound was produced or speech completed. The API has no completion events, voice
-picker, rate/pitch controls, audio-file output, or speech recognition.
+Speech is asynchronous. `Ok(())` from `speak` means the request was dispatched/accepted, not
+that sound was produced or speech completed; the completing forms report the end through the
+bridge's callback tier as a `SpeechEnd` (`Finished`, `Stopped`, or `Unobserved` where the engine
+reports no end, which is speech-dispatcher on Linux). The API has no voice picker, rate/pitch
+controls, audio-file output, or speech recognition.
 
 ## Platform support and limitations
 
