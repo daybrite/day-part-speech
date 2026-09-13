@@ -250,6 +250,25 @@ day_bridge::bridge! {
                 }
             }
 
+            /* sphelper.h's SpClearEvent, spelled out, since that header is not included here: an
+               event owns its lParam according to the type SAPI records for it, so release that and
+               clear the event for the next GetEvents. */
+            static void day_speech_clear_event(SPEVENT* ev) {
+                switch (ev->elParamType) {
+                    case SPET_LPARAM_IS_POINTER:
+                    case SPET_LPARAM_IS_STRING:
+                        CoTaskMemFree(reinterpret_cast<void*>(ev->lParam));
+                        break;
+                    case SPET_LPARAM_IS_TOKEN:
+                    case SPET_LPARAM_IS_OBJECT:
+                        reinterpret_cast<IUnknown*>(ev->lParam)->Release();
+                        break;
+                    default:
+                        break;
+                }
+                ZeroMemory(ev, sizeof(*ev));
+            }
+
             static void __stdcall day_speech_notify(WPARAM, LPARAM) {
                 if (!day_speech_voice) {
                     return;
@@ -260,7 +279,7 @@ day_bridge::bridge! {
                     if (ev.eEventId == SPEI_END_INPUT_STREAM && ev.ulStreamNum == day_speech_stream) {
                         day_speech_settle(1);
                     }
-                    SpClearEvent(&ev);
+                    day_speech_clear_event(&ev);
                 }
             }
 
