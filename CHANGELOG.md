@@ -14,6 +14,8 @@ SPDX-License-Identifier: CC-BY-SA-4.0
   `SpeechSynthesisUtterance.onend`), and the Linux arm reports `SpeechEnd::Unobserved`.
 - Changed: `stop` answers a pending `speak_future` with `SpeechEnd::Stopped`, on Apple even when
   the utterance had not started yet.
+- Changed: the HarmonyOS arm is reached for the first time — the bridge gained its ArkTS half —
+  and completes through Core Speech Kit's `SpeakListener`.
 - Needs day 0.4.3 or newer: `day-bridge` gained the callback tier and `day-async`.
 
 ## 0.1.0

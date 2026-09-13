@@ -437,30 +437,67 @@ day_bridge::bridge! {
     // is required. Its voices are zh-CN in API 13, which is why the arm reports Emulated rather
     // than Native: the platform answers, but not in every language a caller might ask for.
     //
-    // The generator stages this module but has no Rust half for ArkTS yet (docs/bridge.md), so
-    // the token is carried for shape and the fallback answers on HarmonyOS until it does.
-    #[day_bridge::impl(arkts, platforms = [ohos], support = "emulated")]
+    // Core Speech Kit is a Huawei HarmonyOS SDK kit, not part of the public OpenHarmony SDK, so
+    // the arm is `sdk = "hms"`: `day build` stages it only where that SDK is present, and an
+    // OpenHarmony-only build reports Unsupported instead of failing to compile the host.
+    //
+    // The request id IS the completion token, so the engine's listener completes exactly the
+    // utterance that ended: `onComplete` finished, `onStop` stopped, `onError` failed. The arm
+    // returns nothing (not a promise) so the shim leaves the completion to the listener; an
+    // engine that fails to start reports through the token instead.
+    #[day_bridge::impl(arkts, platforms = [ohos], support = "emulated", sdk = "hms")]
     arkts!(
         prelude = r#"
             import { textToSpeech } from '@kit.CoreSpeechKit';
+            import { BusinessError } from '@kit.BasicServicesKit';
         "#,
         body = r#"
             let dayEngine: textToSpeech.TextToSpeechEngine | undefined = undefined;
-            let daySeq: number = 0;
+            let dayPending: number = 0;
 
-            export async function speak_native(text: string, _done: number): Promise<void> {
-                if (!dayEngine) {
-                    dayEngine = await textToSpeech.createEngine({
-                        language: 'zh-CN', person: 0, online: 1,
-                    });
-                }
-                dayEngine.stop();
-                daySeq += 1;
-                dayEngine.speak(text, { requestId: `day-speech-${daySeq}` });
+            function dayListener(): textToSpeech.SpeakListener {
+              return {
+                onStart(_requestId: string, _response: textToSpeech.StartResponse): void {},
+                onComplete(requestId: string, _response: textToSpeech.CompleteResponse): void {
+                  const done = Number(requestId);
+                  if (done > 0) { speak_native_complete(done, 1); }
+                },
+                onStop(requestId: string, _response: textToSpeech.StopResponse): void {
+                  const done = Number(requestId);
+                  if (done > 0) { speak_native_complete(done, 0); }
+                },
+                onData(_requestId: string, _audio: ArrayBuffer, _response: textToSpeech.SynthesisResponse): void {},
+                onError(requestId: string, errorCode: number, errorMessage: string): void {
+                  const done = Number(requestId);
+                  if (done > 0) { speak_native_fail(done, `${errorCode}: ${errorMessage}`); }
+                },
+              };
+            }
+
+            function daySay(engine: textToSpeech.TextToSpeechEngine, text: string, done: number): void {
+              engine.stop();
+              dayPending = done;
+              engine.speak(text, { requestId: String(done) });
+            }
+
+            export function speak_native(text: string, done: number): void {
+              if (dayEngine) {
+                daySay(dayEngine, text, done);
+                return;
+              }
+              textToSpeech.createEngine({ language: 'zh-CN', person: 0, online: 1 })
+                .then((engine: textToSpeech.TextToSpeechEngine) => {
+                  engine.setListener(dayListener());
+                  dayEngine = engine;
+                  daySay(engine, text, done);
+                })
+                .catch((err: BusinessError) => {
+                  speak_native_fail(done, `${err.code}: ${err.message}`);
+                });
             }
 
             export function stop_native(): void {
-                dayEngine?.stop();
+              dayEngine?.stop();
             }
 
             // Core Speech Kit is part of the system; the engine is created on first speak.
