@@ -20,7 +20,7 @@ flow:
   # The arms CI links answer for themselves: AVSpeechSynthesizer on macOS and iOS and TextToSpeech
   # on Android are Native; Core Speech Kit on HarmonyOS declares itself Emulated, since its voices
   # are zh-CN only. The web arm is left unasserted: WebKit has speechSynthesis, but a browser is
-  # free not to, and the arm reports that honestly. A Linux desktop without speech-dispatcher would
+  # free not to, and the arm reports the absence. A Linux desktop without speech-dispatcher would
   # read Unsupported here, and a host that said Native and then stayed silent is the bug
   # `available()` exists to prevent.
   - assert_text: { id: speech-support, text: "Native", only_on: [appkit, uikit, mdc] }

@@ -1,11 +1,11 @@
 // Copyright © The Daybrite Project
 // SPDX-License-Identifier: MPL-2.0
 
-//! Speech Demo — the demo and on-device test app for `day-part-speech`.
+//! Speech Demo: the demo and on-device test app for `day-part-speech`.
 //!
 //! One page: what the part reports for this host, a line to say, Speak, and Stop. Every element
 //! carries a stable id, so `dayscript/speech.yaml` can drive both bridged calls on macOS, the iOS
-//! Simulator, and the Android emulator — which is how the crate's CI proves that each platform's
+//! Simulator, and the Android emulator, which is how the crate's CI proves that each platform's
 //! arm links into a real app and answers. Hearing the voice is the part a script cannot check.
 
 use day::prelude::*;
@@ -30,7 +30,7 @@ pub fn window() -> day::WindowOptions {
 pub fn root() -> impl Piece {
     info!("Speech Demo starting");
 
-    // `available()` asks the compiler which arm this target has AND asks that arm at run time
+    // `available()` asks the compiler which arm this target has and asks that arm at run time
     // whether it can reach an engine, so the label is the answer for this machine: Unsupported on
     // a Linux desktop without speech-dispatcher, Emulated on HarmonyOS, Native elsewhere.
     let support = day_part_speech::available();
@@ -71,7 +71,7 @@ pub fn root() -> impl Piece {
                             };
                             // An `Err` here is the fallback arm answering, which the support label
                             // above already said. A v1 bridge call is one-shot: nothing reports when
-                            // the voice finishes, so there is no progress readout to keep honest.
+                            // the voice finishes, so there is no progress readout to update.
                             let _ = day_part_speech::speak(&text);
                         })
                         .id("speech-speak"),

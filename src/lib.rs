@@ -1,7 +1,7 @@
 // Copyright © The Daybrite Project
 // SPDX-License-Identifier: MPL-2.0
 
-//! day-part-speech — HEADLESS text to speech. One API; each platform's own engine underneath.
+//! day-part-speech: headless text to speech. One API; each platform's engine underneath.
 //!
 //! ```no_run
 //! if day_part_speech::available() != day_bridge::Support::Unsupported {
@@ -13,7 +13,7 @@
 //! platform has text to speech and every platform exposes it in a different language, so the arms
 //! below are written in those languages and live in this file: Swift for `AVSpeechSynthesizer`,
 //! Java for Android's `TextToSpeech`, ArkTS for HarmonyOS Core Speech Kit, JavaScript for
-//! `speechSynthesis`, C++ for Windows SAPI, C for speech-dispatcher — plus the Rust arm that keeps
+//! `speechSynthesis`, C++ for Windows SAPI, C for speech-dispatcher, plus the Rust arm that keeps
 //! the crate compiling anywhere else, including under day-mock in `cargo test`.
 //!
 //! [`speak`] is fire and forget: it returns once the platform has accepted the utterance. Every
@@ -32,7 +32,7 @@ pub enum SpeechEnd {
     Finished,
     /// [`stop`] or a later [`speak`] interrupted it.
     Stopped,
-    /// The engine accepted the text but reports no end — speech-dispatcher on Linux, whose
+    /// The engine accepted the text but reports no end: speech-dispatcher on Linux, whose
     /// notifications this arm does not subscribe to. Treat it as done at once.
     Unobserved,
 }
@@ -55,8 +55,8 @@ impl SpeechEnd {
 /// [`speak_until_done`] and [`speak_future`] for that.
 ///
 /// Where [`available`] reports `Unsupported` this returns `Err(Unsupported)` without reaching
-/// the arm — the arm can only say "failed", and a host with no engine (desktop Linux without
-/// speech-dispatcher) is not a failure, it is the absence `available` already reported.
+/// the arm, because the arm can only say "failed", and a host with no engine (desktop Linux
+/// without speech-dispatcher) is not a failure, it is the absence `available` already reported.
 pub fn speak(text: &str) -> Result<(), Error> {
     if available() == Support::Unsupported {
         return Err(Error::Unsupported);
@@ -84,7 +84,7 @@ pub fn speak_until_done(
 
 /// Speak `text` and resolve when the utterance ends: the same answer [`speak_until_done`] gives,
 /// to `.await` inside `day::task`, where the continuation runs on the UI thread. Dropping the
-/// future stops listening; it does not stop the voice — call [`stop`] for that.
+/// future stops listening; it does not stop the voice. Call [`stop`] for that.
 pub fn speak_future(text: &str) -> impl Future<Output = Result<SpeechEnd, Error>> + Send {
     let fut = if available() == Support::Unsupported {
         None
@@ -105,13 +105,13 @@ pub fn stop() {
     stop_native();
 }
 
-/// What speech can actually do here, right now.
+/// What speech can do here, right now.
 ///
-/// Two questions in one answer. The bridge knows at COMPILE time whether this target has an arm at
+/// Two questions in one answer. The bridge knows at compile time whether this target has an arm at
 /// all (`speak_native_support`), but on some platforms the engine is a separate package the user
-/// may not have installed — desktop Linux ships without speech-dispatcher more often than with it
-/// — so the arm is also asked at RUN time whether it can reach one. A target with an arm but no
-/// engine reports `Unsupported`, because that is what the caller can act on.
+/// may not have installed (desktop Linux ships without speech-dispatcher more often than with
+/// it), so the arm is also asked at run time whether it can reach one. A target with an arm but
+/// no engine reports `Unsupported`, because that is what the caller can act on.
 pub fn available() -> Support {
     match speak_native_support() {
         Support::Unsupported => Support::Unsupported,
@@ -137,14 +137,14 @@ day_bridge::bridge! {
     //
     // `link = ["speechd"]` would be the obvious spelling and it is the wrong one twice over: it
     // needs the -dev package on every build machine, and it writes a DT_NEEDED entry that stops
-    // the whole app from starting on any desktop without libspeechd — for a feature the user may
+    // the whole app from starting on any desktop without libspeechd, for a feature the user may
     // never press. A speech engine is exactly the kind of optional platform service `dlopen`
-    // exists for (the bridge reference, "Linking"). The arm keeps the connection handle in the language
-    // that owns it, which is why it is C rather than Rust.
+    // exists for (the bridge reference, "Linking"). The arm keeps the connection handle in the
+    // language that owns it, which is why it is C rather than Rust.
     //
     // speech-dispatcher's end-of-message notifications are callback fields inside its connection
-    // struct, whose layout this arm would have to restate to set them — so it does not, and
-    // completes every utterance as UNOBSERVED (2) the moment the daemon accepts it.
+    // struct, whose layout this arm would have to restate to set them, so it does not, and
+    // completes every utterance as `Unobserved` (2) the moment the daemon accepts it.
     #[day_bridge::impl(c, platforms = [linux])]
     c!(
         prelude = r#"
@@ -152,8 +152,8 @@ day_bridge::bridge! {
             #include <stddef.h>
         "#,
         body = r#"
-            /* speech-dispatcher's own declarations, so the arm compiles with no headers
-               installed — it never includes libspeechd.h and never links against it. */
+            /* speech-dispatcher's declarations, so the arm compiles with no headers
+               installed: it never includes libspeechd.h and never links against it. */
             typedef struct SPDConnection SPDConnection;
             typedef enum { SPD_MODE_SINGLE = 0, SPD_MODE_THREADED = 1 } SPDConnectionMode;
             typedef enum { SPD_IMPORTANT = 1, SPD_MESSAGE = 3 } SPDPriority;
@@ -219,8 +219,8 @@ day_bridge::bridge! {
         "#,
     );
 
-    // Windows: SAPI 5, the speech API every supported Windows has had since XP. It is COM —
-    // `CoCreateInstance`, an `ISpVoice` interface pointer, `HRESULT`s — which Rust can reach but
+    // Windows: SAPI 5, the speech API every supported Windows has had since XP. It is COM
+    // (`CoCreateInstance`, an `ISpVoice` interface pointer, `HRESULT`s), which Rust can reach but
     // only by declaring the vtable by hand; three lines of C++ get the same thing from the SDK
     // header. This is also the arm that needs UTF-16: SAPI speaks `WCHAR`, so the declaration's
     // `&str` is converted for this arm and left alone for every other one.
@@ -284,7 +284,7 @@ day_bridge::bridge! {
             }
 
             /* One voice for the process, created on first use. COM may already be
-               initialized on this thread by the host app — S_FALSE and RPC_E_CHANGED_MODE
+               initialized on this thread by the host app; S_FALSE and RPC_E_CHANGED_MODE
                both mean "already up", and SAPI is happy in either apartment. */
             static ISpVoice* day_speech_open() {
                 if (day_speech_voice) {
@@ -310,7 +310,7 @@ day_bridge::bridge! {
                     return 1;
                 }
                 /* PURGEBEFORESPEAK drops whatever is still speaking, matching every other arm's
-                   "interrupt and say this" — so the utterance it drops ends as stopped. */
+                   "interrupt and say this", so the utterance it drops ends as stopped. */
                 day_speech_settle(0);
                 ULONG stream = 0;
                 HRESULT hr = voice->Speak(reinterpret_cast<const WCHAR*>(text),
@@ -424,7 +424,7 @@ day_bridge::bridge! {
                     say(text, done);
                 } else {
                     // A second request while the engine is still starting supersedes the first,
-                    // which ends as stopped — the same outcome QUEUE_FLUSH gives once it runs.
+                    // which ends as stopped, the same outcome QUEUE_FLUSH gives once it runs.
                     if (pendingDone != 0) {
                         speak_native_complete(pendingDone, 0);
                     }
@@ -452,7 +452,7 @@ day_bridge::bridge! {
         "#,
     );
 
-    // HarmonyOS: Core Speech Kit is ArkTS-only — the ArkUI C NDK has no TTS at all — so this arm
+    // HarmonyOS: Core Speech Kit is ArkTS-only (the ArkUI C NDK has no TTS at all), so this arm
     // is required. Its voices are zh-CN in API 13, which is why the arm reports Emulated rather
     // than Native: the platform answers, but not in every language a caller might ask for.
     //
@@ -548,7 +548,7 @@ day_bridge::bridge! {
             speechSynthesis.cancel();
         }
 
-        // Not every browser has the Web Speech API — Firefox on some platforms ships without it.
+        // Not every browser has the Web Speech API; Firefox on some platforms ships without it.
         export function engine_ready_native() {
             if (typeof speechSynthesis === "undefined") {
                 throw new Error("no speechSynthesis");
@@ -557,7 +557,7 @@ day_bridge::bridge! {
     "#);
 
     // Apple: AVSpeechSynthesizer. `objc2` could reach it, but the synthesizer has to outlive the
-    // call — it stops speaking if it deallocates — and a file-scope `let` in Swift says that in
+    // call (it stops speaking if it deallocates), and a file-scope `let` in Swift says that in
     // one line. Its delegate reports the end of each utterance, keyed back to the token that
     // started it.
     //
@@ -637,7 +637,7 @@ day_bridge::bridge! {
         "#,
     );
 
-    // Everywhere without a platform arm — and the arm `cargo test` and day-mock compile against.
+    // Everywhere without a platform arm, and the arm `cargo test` and day-mock compile against.
     // Returning `Err` completes the caller's callback with it: an unsupported target never
     // leaves a future pending.
     #[day_bridge::impl(rust, platforms = [other])]
@@ -690,7 +690,7 @@ mod tests {
     }
 
     /// A host with no engine installed must report `Unsupported` rather than claim `Native` and
-    /// then do nothing — the case desktop Linux hits whenever speech-dispatcher is absent.
+    /// then do nothing: the case desktop Linux hits whenever speech-dispatcher is absent.
     #[test]
     fn available_answers_for_this_host_not_just_this_target() {
         // Never panics, and never claims more than the fallback on a target with no arm.
