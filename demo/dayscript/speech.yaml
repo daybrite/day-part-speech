@@ -18,13 +18,13 @@ flow:
   - wait_for: { id: speech-support }
   - assert_visible: { id: speech-title }
   # The arms CI links answer for themselves: AVSpeechSynthesizer on macOS and iOS and TextToSpeech
-  # on Android are Native; Core Speech Kit on HarmonyOS declares itself Emulated, since its voices
-  # are zh-CN only. The web arm is left unasserted: WebKit has speechSynthesis, but a browser is
-  # free not to, and the arm reports the absence. A Linux desktop without speech-dispatcher would
-  # read Unsupported here, and a host that said Native and then stayed silent is the bug
-  # `available()` exists to prevent.
+  # on Android are Native. HarmonyOS is left unasserted: Core Speech Kit declares itself Emulated
+  # on a device, since its voices are zh-CN only, but the Oniro emulator CI boots reports
+  # "Unsupported on this host". The web arm is left unasserted too: WebKit has speechSynthesis,
+  # but a browser is free not to, and the arm reports the absence. A Linux desktop without
+  # speech-dispatcher would read Unsupported here, and a host that said Native and then stayed
+  # silent is the bug `available()` exists to prevent.
   - assert_text: { id: speech-support, text: "Native", only_on: [appkit, uikit, mdc] }
-  - assert_text: { id: speech-support, text: "Emulated (partial)", only_on: [arkui] }
   - screenshot: speech
 
   # Empty means "speak the sample the placeholder shows"; typing overrides it.
