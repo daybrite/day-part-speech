@@ -561,6 +561,13 @@ day_bridge::bridge! {
     // one line. Its delegate reports the end of each utterance, keyed back to the token that
     // started it.
     //
+    // Everything that touches the engine runs on one serial queue, and a bridged call returns as
+    // soon as its work is queued. The first `speak` of a process brings up the synthesis service
+    // and loads a voice, and on a cold iOS Simulator that has taken over thirty seconds: done on
+    // the caller's thread it froze the app, and failed the walkthrough's main-thread watchdog in
+    // CI. The queue also serializes `pending` between the two calls and the delegate, which
+    // reports on whatever thread the engine chooses.
+    //
     // A stop is answered by the arm, not the engine: `stopSpeaking(at:)` reaches only an utterance
     // that has started, and one still queued in the moments after `speak` would otherwise play
     // through and report "finished" after the user pressed Stop. So `stop` completes every pending
@@ -572,7 +579,10 @@ day_bridge::bridge! {
             import AVFoundation
         "#,
         body = r#"
+            private let dayQueue = DispatchQueue(label: "dev.daybrite.speech")
+
             private final class DaySpeechDelegate: NSObject, AVSpeechSynthesizerDelegate {
+                /// Touched on `dayQueue` only.
                 var pending: [ObjectIdentifier: UInt64] = [:]
 
                 /// Answer every pending utterance as stopped; a later `didFinish`/`didCancel`
@@ -587,22 +597,28 @@ day_bridge::bridge! {
 
                 func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
                                        didStart utterance: AVSpeechUtterance) {
-                    if pending[ObjectIdentifier(utterance)] == nil {
-                        synthesizer.stopSpeaking(at: .immediate)
+                    dayQueue.async {
+                        if self.pending[ObjectIdentifier(utterance)] == nil {
+                            synthesizer.stopSpeaking(at: .immediate)
+                        }
                     }
                 }
 
                 func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
                                        didFinish utterance: AVSpeechUtterance) {
-                    if let done = pending.removeValue(forKey: ObjectIdentifier(utterance)) {
-                        speak_native_complete(done, 1)
+                    dayQueue.async {
+                        if let done = self.pending.removeValue(forKey: ObjectIdentifier(utterance)) {
+                            speak_native_complete(done, 1)
+                        }
                     }
                 }
 
                 func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
                                        didCancel utterance: AVSpeechUtterance) {
-                    if let done = pending.removeValue(forKey: ObjectIdentifier(utterance)) {
-                        speak_native_complete(done, 0)
+                    dayQueue.async {
+                        if let done = self.pending.removeValue(forKey: ObjectIdentifier(utterance)) {
+                            speak_native_complete(done, 0)
+                        }
                     }
                 }
             }
@@ -614,22 +630,34 @@ day_bridge::bridge! {
                 return s
             }()
 
+            // `Ok` once the request is queued. An audio session that cannot be activated is the
+            // one failure the engine reports before speaking, and it reaches the caller through
+            // the token, since the call has already returned by then.
             func speak_native(text: String, done: UInt64) throws {
-                #if os(iOS)
-                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio)
-                try AVAudioSession.sharedInstance().setActive(true)
-                #endif
-                dayDelegate.stopAll()
-                daySynthesizer.stopSpeaking(at: .immediate)
-                let utterance = AVSpeechUtterance(string: text)
-                utterance.voice = AVSpeechSynthesisVoice(language: Locale.current.identifier)
-                dayDelegate.pending[ObjectIdentifier(utterance)] = done
-                daySynthesizer.speak(utterance)
+                dayQueue.async {
+                    #if os(iOS)
+                    do {
+                        try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio)
+                        try AVAudioSession.sharedInstance().setActive(true)
+                    } catch {
+                        speak_native_fail(done)
+                        return
+                    }
+                    #endif
+                    dayDelegate.stopAll()
+                    daySynthesizer.stopSpeaking(at: .immediate)
+                    let utterance = AVSpeechUtterance(string: text)
+                    utterance.voice = AVSpeechSynthesisVoice(language: Locale.current.identifier)
+                    dayDelegate.pending[ObjectIdentifier(utterance)] = done
+                    daySynthesizer.speak(utterance)
+                }
             }
 
             func stop_native() {
-                dayDelegate.stopAll()
-                daySynthesizer.stopSpeaking(at: .immediate)
+                dayQueue.async {
+                    dayDelegate.stopAll()
+                    daySynthesizer.stopSpeaking(at: .immediate)
+                }
             }
 
             // AVFoundation is part of the OS; there is nothing to be missing.

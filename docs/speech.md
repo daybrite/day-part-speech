@@ -103,7 +103,7 @@ nothing in the crate declares them by hand. The `Done<i32>` is the token each ar
 
 | OS | Engine | Arm language | Why not Rust |
 |---|---|---|---|
-| macOS, iOS | `AVSpeechSynthesizer` | Swift | the synthesizer must outlive the call, so it is one file-scope `let` in Swift |
+| macOS, iOS | `AVSpeechSynthesizer` | Swift | the synthesizer must outlive the call, so it is one file-scope `let` in Swift; its engine work runs on a serial queue, since the first utterance can take seconds to start |
 | Android | `TextToSpeech` | Java | needs a `Context` and an `OnInitListener`; unreachable from Rust |
 | HarmonyOS | Core Speech Kit | ArkTS | ArkTS-only API with no C entry point (reports `Emulated`: zh-CN voices only) |
 | Web | `speechSynthesis` | JavaScript | wasm cannot touch browser APIs |
