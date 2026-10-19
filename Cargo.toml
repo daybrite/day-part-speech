@@ -24,7 +24,7 @@ publish = false
 
 [package.metadata.day]
 # The day minor this release is built and tested against. `day build` notes a mismatch.
-compat = "0.4"
+compat = "0.5"
 
 [dependencies]
 day-bridge = { git = "https://github.com/daybrite/day.git" }
