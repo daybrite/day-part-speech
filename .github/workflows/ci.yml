@@ -82,12 +82,6 @@ jobs:
     with:
       project-path: demo
       targets: windows-winui, macos-appkit, ios-uikit, android-mdc, web-dom, harmony-arkui
-<<<<<<< Updated upstream
-=======
-      # The CLI that builds, and the framework revision: with no lock committed the shared
-      # workflow resolves one fresh, and this moves every leg to the same tip-of-main revision.
-      day-version: main
->>>>>>> Stashed changes
       update-day-deps: true
       scripts: dayscript/speech.yaml
       preflight-checks: fmt, clippy, test
