@@ -18,12 +18,7 @@ day::resources!();
 
 /// The window every entry point opens.
 pub fn window() -> day::WindowOptions {
-    day::WindowOptions {
-        locales: Some((res::locales::DEFAULT, res::locales::CATALOG)),
-        title_fn: Some(|| res::str::app_title().format()),
-        size: day::prelude::Size::new(480.0, 520.0),
-        ..Default::default()
-    }
+    res::window_options().size(480.0, 520.0)
 }
 
 /// The whole app: title, the part's answer for this host, the phrase, and the two calls.
