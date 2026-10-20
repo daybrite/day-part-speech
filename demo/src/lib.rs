@@ -45,16 +45,16 @@ pub fn root() -> impl Piece {
         column((
             label(res::str::app_title())
                 .font(Font::Title)
-                .id("speech-title"),
+                .id(day::id!(speech_title)),
             label(res::str::caption()).font(Font::Footnote),
             section((
                 labeled(
                     res::str::support_label(),
-                    label(support_text).id("speech-support"),
+                    label(support_text).id(day::id!(speech_support)),
                 ),
                 text_field(phrase)
                     .placeholder(res::str::phrase())
-                    .id("speech-text"),
+                    .id(day::id!(speech_text)),
                 row((
                     button(res::str::speak())
                         .action(move || {
@@ -69,11 +69,11 @@ pub fn root() -> impl Piece {
                             // the voice finishes, so there is no progress readout to update.
                             let _ = day_part_speech::speak(&text);
                         })
-                        .id("speech-speak"),
+                        .id(day::id!(speech_speak)),
                     button(res::str::stop())
                         .bordered()
                         .action(day_part_speech::stop)
-                        .id("speech-stop"),
+                        .id(day::id!(speech_stop)),
                 ))
                 .spacing(8.0),
             ))
