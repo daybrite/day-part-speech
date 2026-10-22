@@ -9,7 +9,7 @@
 //! }
 //! ```
 //!
-//! This is [daybridge](https://daybrite.dev/docs/internal/bridge)'s reference sample. Every
+//! This is [daybridge](https://daybrite.dev/contributing/backend-contracts/bridge)'s reference sample. Every
 //! platform has text to speech and every platform exposes it in a different language, so the arms
 //! below are written in those languages and live in this file: Swift for `AVSpeechSynthesizer`,
 //! Java for Android's `TextToSpeech`, ArkTS for HarmonyOS Core Speech Kit, JavaScript for

@@ -10,8 +10,8 @@ license = "MPL-2.0"
 # from git, exactly as they depend on day.
 publish = false
 
-# An external Day Part (https://daybrite.dev/docs/parts): a headless capability crate with no UI
-# Piece, and daybridge's reference sample (https://daybrite.dev/docs/internal/bridge). Every
+# An external Day Part (https://daybrite.dev/docs/reference/parts): a headless capability crate with no UI
+# Piece, and daybridge's reference sample (https://daybrite.dev/contributing/backend-contracts/bridge). Every
 # platform has text to speech and exposes it in a different language, so `src/lib.rs` carries one
 # Swift, Java, ArkTS, JavaScript, C++ (Windows SAPI), and C arm beside the Rust fallback, all
 # under one declaration. `build.rs` generates the glue; nothing here is written twice.
