@@ -49,7 +49,7 @@ jobs:
       - run: cargo test
 
   # The Rust halves compile for the targets whose arms only a device build can link: the Swift
-  # arm's iOS side, the JNI side of the Java arm (which pulls day-android), and the wasm side of
+  # arm's iOS side, the JNI side of the Java arm (which pulls day-mdc), and the wasm side of
   # the JavaScript arm. A drift in a generated signature fails here in a minute rather than in
   # the emulator.
   cross-check:

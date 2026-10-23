@@ -354,7 +354,7 @@ day_bridge::bridge! {
             import android.content.Context;
             import android.speech.tts.TextToSpeech;
             import android.speech.tts.UtteranceProgressListener;
-            import dev.daybrite.day.bridge.DayBridge;
+            import dev.daybrite.day.bridge.DayRuntime;
             import java.util.Locale;
         "#,
         body = r#"
@@ -398,7 +398,7 @@ day_bridge::bridge! {
             };
 
             public static void speak_native(String text, long done) {
-                Context ctx = DayBridge.ctx;
+                Context ctx = DayRuntime.ctx;
                 if (ctx == null) {
                     throw new IllegalStateException("no Context");
                 }
@@ -445,7 +445,7 @@ day_bridge::bridge! {
             }
 
             public static void engine_ready_native() {
-                if (DayBridge.ctx == null) {
+                if (DayRuntime.ctx == null) {
                     throw new IllegalStateException("no Context");
                 }
             }

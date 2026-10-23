@@ -118,7 +118,7 @@ first utterance is queued and flushed on init, state the Rust side never sees:
 
 ```java
 public static void speak_native(String text) {
-    Context ctx = DayBridge.ctx;
+    Context ctx = DayRuntime.ctx;
     if (ctx == null) {
         throw new IllegalStateException("no Context");
     }
