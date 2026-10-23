@@ -193,7 +193,7 @@ Windows, so there is nothing to be missing.
 
 ## What it shows about the extension system
 
-`day-part-battery` ([battery](https://daybrite.dev/docs/internal/battery)) showed that a headless
+`day-part-device` ([battery](https://daybrite.dev/docs/internal/battery)) showed that a headless
 crate can contribute a platform implementation. This crate is the case that motivated
 [daybridge](https://daybrite.dev/docs/internal/bridge) itself: **six languages, one file, one
 declaration**. The generator writes the glue, so the whole crate is
