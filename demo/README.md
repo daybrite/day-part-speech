@@ -16,7 +16,7 @@ request and one CI run.
 day doctor                                            # the toolchains for the targets below
 day launch -p macos-appkit --script dayscript/speech.yaml
 day launch -p ios-uikit --script dayscript/speech.yaml
-day launch -p android-mdc --script dayscript/speech.yaml
+day launch -p android-material --script dayscript/speech.yaml
 ```
 
 The script is the test: it asserts the support label, drives both bridged calls, and captures two

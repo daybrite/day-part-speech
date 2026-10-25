@@ -92,7 +92,7 @@ visible when speech is unavailable. No speech-specific backend feature, permissi
 reason, or native dependency entry needs to be added to `Day.toml` by the app.
 
 Build through the Day CLI so the foreign-language implementations are generated and
-packaged, for example `day build -p android-mdc` or `day launch -p macos-appkit`, with
+packaged, for example `day build -p android-material` or `day launch -p macos-appkit`, with
 that target configured in your app and its SDK installed. The [demo](demo/) contains
 a complete app with text entry, Speak/Stop controls, and a support readout. The crate
 is designed to run inside Day's platform host, particularly on Android where the
@@ -118,7 +118,7 @@ the language that owns them and are reused across calls.
 | Dependency | Role and cost |
 |---|---|
 | [day-bridge](https://github.com/daybrite/day/tree/main/crates/day-bridge) | The sole unconditional runtime dependency; provides bridge macros, error/support types, and cross-language plumbing. |
-| [day-android-runtime](https://github.com/daybrite/day/tree/main/crates/day-android-runtime) | Android-only Rust dependency providing the cached JVM and application context for JNI calls. |
+| [day-platform-android](https://github.com/daybrite/day/tree/main/crates/day-platform-android) | Android-only Rust dependency providing the cached JVM and application context for JNI calls. |
 | [day-build](https://github.com/daybrite/day/tree/main/crates/day-build) | Build-time dependency for bridge generation; brings Day's build/code-generation dependencies, not a speech engine bundled in the app. |
 | Apple system framework | Swift calls AVFoundation; no third-party SwiftPM speech library. |
 | Android, HarmonyOS, web APIs | Platform-provided speech engines; no third-party Gradle speech package or JavaScript speech library declared here. |

@@ -4,7 +4,7 @@
 #
 #     day launch -p macos-appkit --script dayscript/speech.yaml
 #     day launch -p ios-uikit --script dayscript/speech.yaml
-#     day launch -p android-mdc --script dayscript/speech.yaml
+#     day launch -p android-material --script dayscript/speech.yaml
 #     day launch -p web-dom --script dayscript/speech.yaml
 #     day launch -p harmony-arkui --script dayscript/speech.yaml
 #
@@ -24,7 +24,7 @@ flow:
   # but a browser is free not to, and the arm reports the absence. A Linux desktop without
   # speech-dispatcher would read Unsupported here, and a host that said Native and then stayed
   # silent is the bug `available()` exists to prevent.
-  - assert_text: { id: speech_support, text: "Native", only_on: [appkit, uikit, mdc] }
+  - assert_text: { id: speech_support, text: "Native", only_on: [appkit, uikit, material] }
   - screenshot: speech
 
   # Empty means "speak the sample the placeholder shows"; typing overrides it.
