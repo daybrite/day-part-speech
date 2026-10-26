@@ -64,7 +64,7 @@ Add the crate to your existing app's `Cargo.toml`:
 
 ```toml
 [dependencies]
-day-part-speech = { git = "https://github.com/daybrite/day-part-speech.git" }
+day-part-speech = "0.1"
 ```
 
 Call it from an app action. `Error` and `Support` are re-exported, so you do not need

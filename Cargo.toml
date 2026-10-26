@@ -6,9 +6,6 @@ rust-version = "1.89"
 description = "Text to speech for Day apps through each platform's own engine"
 repository = "https://github.com/daybrite/day-part-speech"
 license = "MPL-2.0"
-# The day framework crates are not on crates.io yet; neither is this one. Apps depend on it
-# from git, exactly as they depend on day.
-publish = false
 
 # An external Day Part (https://daybrite.dev/docs/reference/parts): a headless capability crate with no UI
 # Piece, and daybridge's reference sample (https://daybrite.dev/contributing/backend-contracts/bridge). Every
@@ -27,12 +24,12 @@ publish = false
 compat = "0.6"
 
 [dependencies]
-day-bridge = { git = "https://github.com/daybrite/day.git" }
+day-bridge = "0.6"
 
 # The Java arm is called through JNI, so the generated code needs day-platform-android's cached JVM and
 # Context, the same dependency day-part-device's Android arm has.
 [target.'cfg(target_os = "android")'.dependencies]
-day-platform-android = { git = "https://github.com/daybrite/day.git" }
+day-platform-android = "0.6"
 
 [build-dependencies]
-day-build = { git = "https://github.com/daybrite/day.git" }
+day-build = "0.6"
