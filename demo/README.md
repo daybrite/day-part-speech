@@ -20,8 +20,9 @@ day launch -p android-material --script dayscript/speech.yaml
 ```
 
 The script is the test: it asserts the support label, drives both bridged calls, and captures two
-screenshots under `build/day/screenshots/<target>/`. CI runs exactly this on macOS, the iOS
-Simulator, the Android emulator, headless WebKit, and the HarmonyOS emulator ([../.github/workflows/ci.yml](../.github/workflows/ci.yml)).
+screenshots under `build/day/screenshots/<target>/`. CI runs exactly this on every target
+[Day.toml](Day.toml) declares: macOS, Windows, Linux (GTK), the iOS Simulator, the Android
+emulator, headless WebKit, and the HarmonyOS emulator ([../.github/workflows/ci.yml](../.github/workflows/ci.yml)).
 The voice itself is the one thing a script cannot hear.
 
 ## Build against a local day
