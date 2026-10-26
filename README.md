@@ -64,7 +64,7 @@ Add the crate to your existing app's `Cargo.toml`:
 
 ```toml
 [dependencies]
-day-part-speech = "0.1"
+day-part-speech = "0.4"
 ```
 
 Call it from an app action. `Error` and `Support` are re-exported, so you do not need

@@ -709,9 +709,20 @@ mod tests {
         }
     }
 
+    /// Everything that reaches the host's engine, on one thread. The Windows arm keeps one SAPI
+    /// voice for the process, created in the COM apartment of the first thread that asks, the
+    /// way an app's UI thread uses it; `cargo test` runs each test on a thread of its own, and
+    /// two of them opening the voice at once hung the windows-latest runner.
+    #[test]
+    fn the_engine_answers_on_one_thread() {
+        available_answers_for_this_host_not_just_this_target();
+        support_matches_behavior();
+        the_completing_forms_always_answer();
+        speaking_is_never_fatal();
+    }
+
     /// Speaking must never be fatal, whatever the host has: on a target with no arm this is the
     /// fallback's `Unsupported`, and on one with an arm it drives the real engine.
-    #[test]
     fn speaking_is_never_fatal() {
         let _ = super::speak("");
         super::stop();
@@ -719,14 +730,12 @@ mod tests {
 
     /// A host with no engine installed must report `Unsupported` rather than claim `Native` and
     /// then do nothing: the case desktop Linux hits whenever speech-dispatcher is absent.
-    #[test]
     fn available_answers_for_this_host_not_just_this_target() {
         // Never panics, and never claims more than the fallback on a target with no arm.
         let _ = super::available();
     }
 
     /// `available()` and `speak()` must agree: an `Unsupported` target cannot succeed.
-    #[test]
     fn support_matches_behavior() {
         if super::available() == super::Support::Unsupported {
             assert_eq!(super::speak("x"), Err(super::Error::Unsupported));
@@ -735,7 +744,6 @@ mod tests {
 
     /// The completing forms never leave a caller waiting: on an unsupported target the callback
     /// fires with `Unsupported` at once, and the future resolves with it.
-    #[test]
     fn the_completing_forms_always_answer() {
         if super::available() != super::Support::Unsupported {
             return;
