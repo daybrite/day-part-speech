@@ -565,14 +565,15 @@ day_bridge::bridge! {
     // soon as its work is queued. The first `speak` of a process brings up the synthesis service
     // and loads a voice, and on a cold iOS Simulator that has taken over thirty seconds: done on
     // the caller's thread it froze the app, and failed the walkthrough's main-thread watchdog in
-    // CI. The queue also serializes `pending` between the two calls and the delegate, which
-    // reports on whatever thread the engine chooses.
+    // CI.
     //
-    // A stop is answered by the arm, not the engine: `stopSpeaking(at:)` reaches only an utterance
-    // that has started, and one still queued in the moments after `speak` would otherwise play
-    // through and report "finished" after the user pressed Stop. So `stop` completes every pending
-    // token as stopped at once, and the delegate's `didStart` cuts an utterance whose token was
-    // already stopped, so the voice follows the answer.
+    // A stop is answered by the arm, not the engine, and on the caller's thread rather than the
+    // queue: `stopSpeaking(at:)` reaches only an utterance that has started, and Stop pressed while
+    // the first `speak` is still bringing the engine up would otherwise wait behind it on the
+    // queue, leaving the caller's state on "speaking" for as long as that takes. So the tokens
+    // live behind a lock: `stop` completes every one as stopped at once, a queued `speak` whose
+    // token was answered meanwhile never reaches the engine, and the delegate's `didStart` cuts
+    // an utterance whose token was already answered, so the voice follows the answer.
     #[day_bridge::impl(swift, platforms = [ios, macos])]
     swift!(
         prelude = r#"
@@ -582,43 +583,84 @@ day_bridge::bridge! {
             private let dayQueue = DispatchQueue(label: "dev.daybrite.speech")
 
             private final class DaySpeechDelegate: NSObject, AVSpeechSynthesizerDelegate {
-                /// Touched on `dayQueue` only.
-                var pending: [ObjectIdentifier: UInt64] = [:]
+                private let lock = NSLock()
+                /// Tokens whose `speak` is queued but not yet handed to the engine.
+                private var waiting: Set<UInt64> = []
+                /// Tokens of utterances handed to the engine, by utterance.
+                private var pending: [ObjectIdentifier: UInt64] = [:]
 
-                /// Answer every pending utterance as stopped; a later `didFinish`/`didCancel`
-                /// for one of them then finds nothing.
-                func stopAll() {
-                    let stopped = pending
+                /// Take every unanswered token out, for the caller to answer outside the lock.
+                private func takeAll() -> [UInt64] {
+                    lock.lock()
+                    defer { lock.unlock() }
+                    let all = Array(waiting) + Array(pending.values)
+                    waiting.removeAll()
                     pending.removeAll()
-                    for (_, done) in stopped {
+                    return all
+                }
+
+                /// Answer every unanswered token as stopped; a later `didFinish`/`didCancel`, or a
+                /// queued `speak`, for one of them then finds nothing.
+                func stopAll() {
+                    for done in takeAll() {
                         speak_native_complete(done, 0)
                     }
                 }
 
+                /// A new request: the ones before it end as stopped, and `done` waits for the queue.
+                func admit(_ done: UInt64) {
+                    stopAll()
+                    lock.lock()
+                    waiting.insert(done)
+                    lock.unlock()
+                }
+
+                /// Move `done` from waiting to `utterance`; `false` when it was answered meanwhile.
+                func claim(_ done: UInt64, for utterance: AVSpeechUtterance) -> Bool {
+                    lock.lock()
+                    defer { lock.unlock() }
+                    guard waiting.remove(done) != nil else { return false }
+                    pending[ObjectIdentifier(utterance)] = done
+                    return true
+                }
+
+                /// Take `done` out of waiting; `false` when it was answered meanwhile.
+                func withdraw(_ done: UInt64) -> Bool {
+                    lock.lock()
+                    defer { lock.unlock() }
+                    return waiting.remove(done) != nil
+                }
+
+                private func take(_ utterance: AVSpeechUtterance) -> UInt64? {
+                    lock.lock()
+                    defer { lock.unlock() }
+                    return pending.removeValue(forKey: ObjectIdentifier(utterance))
+                }
+
+                private func isPending(_ utterance: AVSpeechUtterance) -> Bool {
+                    lock.lock()
+                    defer { lock.unlock() }
+                    return pending[ObjectIdentifier(utterance)] != nil
+                }
+
                 func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
                                        didStart utterance: AVSpeechUtterance) {
-                    dayQueue.async {
-                        if self.pending[ObjectIdentifier(utterance)] == nil {
-                            synthesizer.stopSpeaking(at: .immediate)
-                        }
+                    if !isPending(utterance) {
+                        dayQueue.async { synthesizer.stopSpeaking(at: .immediate) }
                     }
                 }
 
                 func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
                                        didFinish utterance: AVSpeechUtterance) {
-                    dayQueue.async {
-                        if let done = self.pending.removeValue(forKey: ObjectIdentifier(utterance)) {
-                            speak_native_complete(done, 1)
-                        }
+                    if let done = take(utterance) {
+                        speak_native_complete(done, 1)
                     }
                 }
 
                 func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
                                        didCancel utterance: AVSpeechUtterance) {
-                    dayQueue.async {
-                        if let done = self.pending.removeValue(forKey: ObjectIdentifier(utterance)) {
-                            speak_native_complete(done, 0)
-                        }
+                    if let done = take(utterance) {
+                        speak_native_complete(done, 0)
                     }
                 }
             }
@@ -634,28 +676,31 @@ day_bridge::bridge! {
             // one failure the engine reports before speaking, and it reaches the caller through
             // the token, since the call has already returned by then.
             func speak_native(text: String, done: UInt64) throws {
+                dayDelegate.admit(done)
                 dayQueue.async {
                     #if os(iOS)
                     do {
                         try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio)
                         try AVAudioSession.sharedInstance().setActive(true)
                     } catch {
-                        speak_native_fail(done)
+                        if dayDelegate.withdraw(done) {
+                            speak_native_fail(done)
+                        }
                         return
                     }
                     #endif
-                    dayDelegate.stopAll()
                     daySynthesizer.stopSpeaking(at: .immediate)
                     let utterance = AVSpeechUtterance(string: text)
                     utterance.voice = AVSpeechSynthesisVoice(language: Locale.current.identifier)
-                    dayDelegate.pending[ObjectIdentifier(utterance)] = done
+                    // Stopped while it waited here: it never reaches the engine.
+                    guard dayDelegate.claim(done, for: utterance) else { return }
                     daySynthesizer.speak(utterance)
                 }
             }
 
             func stop_native() {
+                dayDelegate.stopAll()
                 dayQueue.async {
-                    dayDelegate.stopAll()
                     daySynthesizer.stopSpeaking(at: .immediate)
                 }
             }

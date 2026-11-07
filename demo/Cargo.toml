@@ -26,15 +26,14 @@ name = "dayapp"
 crate-type = ["rlib"]
 
 [dependencies]
-# The bare canonical URL, no ref: Cargo.lock (committed) pins the revision this demo was tested
-# against, and `cargo update` moves it. See ../Cargo.toml for why a ref would double the graph.
-day = { package = "day-app", version = "0.6" }
+# Day dependencies accept every stable 0.x release; Cargo.lock records the tested versions.
+day = { package = "day-app", version = "0.*" }
 # The part under test, by path: a change to the part and to the demo land in one pull request
-# and one CI run. An app depends on it from git instead:
-#     day-part-speech = { git = "https://github.com/daybrite/day-part-speech.git" }
-day-part-speech = { path = ".." }
+# and one CI run. Other apps use the published crate:
+#     day-part-speech = "0.*"
+day-part-speech = { version = "0.*", path = ".." }
 
 [build-dependencies]
-day-build = "0.6"
+day-build = "0.*"
 
 [workspace]

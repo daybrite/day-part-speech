@@ -13,23 +13,20 @@ license = "MPL-2.0"
 # Swift, Java, ArkTS, JavaScript, C++ (Windows SAPI), and C arm beside the Rust fallback, all
 # under one declaration. `build.rs` generates the glue; nothing here is written twice.
 #
-# Every day dependency names the bare canonical URL: no branch, tag, or rev. Cargo unifies a git
-# dependency only when URL and ref match, so an app on `git = "…/day.git"` and a part pinned to
-# a tag would carry two copies of every day crate; leaving the ref off lets the app's Cargo.lock
-# choose one revision for the whole graph. `demo/Cargo.lock` records the revision this release
-# was tested against, and `compat` below says which day minor that is.
+# Daybrite-owned dependencies accept every stable 0.x release. Apps retain a tested
+# dependency set with Cargo.lock; updating it may require source changes.
 
 [package.metadata.day]
-# The day minor this release is built and tested against. `day build` notes a mismatch.
-compat = "0.6"
+# Accept the pre-1.0 series; source compatibility between releases is not guaranteed.
+compat = "0.*"
 
 [dependencies]
-day-bridge = "0.6"
+day-bridge = "0.*"
 
 # The Java arm is called through JNI, so the generated code needs day-platform-android's cached JVM and
 # Context, the same dependency day-part-device's Android arm has.
 [target.'cfg(target_os = "android")'.dependencies]
-day-platform-android = "0.6"
+day-platform-android = "0.*"
 
 [build-dependencies]
-day-build = "0.6"
+day-build = "0.*"
