@@ -1,6 +1,6 @@
 [package]
 name = "day-part-speech"
-version = "0.4.3"
+version = "0.5.0"
 edition = "2024"
 rust-version = "1.89"
 description = "Text to speech for Day apps through each platform's own engine"
