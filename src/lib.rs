@@ -57,6 +57,11 @@ impl SpeechEnd {
 /// Where [`available`] reports `Unsupported` this returns `Err(Unsupported)` without reaching
 /// the arm, because the arm can only say "failed", and a host with no engine (desktop Linux
 /// without speech-dispatcher) is not a failure, it is the absence `available` already reported.
+///
+/// # Errors
+///
+/// Returns [`Error::Unsupported`] when the platform has no speech engine, and the platform's
+/// error when it rejects the request.
 pub fn speak(text: &str) -> Result<(), Error> {
     if available() == Support::Unsupported {
         return Err(Error::Unsupported);
@@ -68,6 +73,11 @@ pub fn speak(text: &str) -> Result<(), Error> {
 /// utterance finishes, is stopped, or fails. `Ok` means the platform accepted the request; on
 /// `Err` the callback still fires exactly once, with that error, so either channel alone is a
 /// complete answer. Capture a `Setter` to reach UI state from the callback (docs/async.md).
+///
+/// # Errors
+///
+/// Returns [`Error::Unsupported`] when the platform has no speech engine, and the platform's
+/// error when it rejects the request. `on_end` receives the same error.
 pub fn speak_until_done(
     text: &str,
     on_end: impl FnOnce(Result<SpeechEnd, Error>) + Send + 'static,
@@ -77,7 +87,7 @@ pub fn speak_until_done(
         return Err(Error::Unsupported);
     }
     speak_native_async(text, move |code| {
-        on_end(code.and_then(SpeechEnd::from_code))
+        on_end(code.and_then(SpeechEnd::from_code));
     })
     .map(|_| ())
 }
@@ -85,6 +95,11 @@ pub fn speak_until_done(
 /// Speak `text` and resolve when the utterance ends: the same answer [`speak_until_done`] gives,
 /// to `.await` inside `day::task`, where the continuation runs on the UI thread. Dropping the
 /// future stops listening; it does not stop the voice. Call [`stop`] for that.
+///
+/// # Errors
+///
+/// The future resolves to [`Error::Unsupported`] when the platform has no speech engine, and to
+/// the platform's error when it rejects the request or the utterance fails.
 pub fn speak_future(text: &str) -> impl Future<Output = Result<SpeechEnd, Error>> + Send {
     let fut = if available() == Support::Unsupported {
         None
